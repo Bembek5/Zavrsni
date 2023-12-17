@@ -231,24 +231,6 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
     average_drops = np.mean(poisson_samples)
     luck_results += f"Average drops (simulated): {average_drops:.4f}\n"
 
-    # Calculate and display various probabilities
-    chance_no_drops = np.exp(-lambda_val)
-    luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.2f}%\n"
-
-    chance_of_at_least_one_drop = 1 - np.exp(-lambda_val)
-    luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.4f}%\n"
-
-    chance_of_at_least_n_drops = 1 - np.sum(poisson.pmf(np.arange(0, int(num_kills)), lambda_val))
-    luck_results += f"Chance to receive at least {num_kills:.0f} drop(s): {chance_of_at_least_n_drops * 100:.4f}%\n"
-
-    chance_more_than_n = 1 - chance_of_at_least_n_drops
-    luck_results += f"Chance to receive more than {num_kills:.0f} drop(s): {chance_more_than_n * 100:.4f}%\n"
-
-    chance_of_exactly_n_drops = poisson.pmf(int(num_kills), lambda_val)
-    luck_results += f"Chance to get exactly {num_kills:.0f} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
-
-    luck_label.config(text=luck_results)
-
     # Create subplot with bars for Poisson distribution
     fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -271,7 +253,7 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
     
     # Display luck simulation results on the graph
     luck_results = f"Simulated kills: {num_kills}\n"
-    luck_results += f"Expected drops (lambda): {lambda_val:.0f}\n"
+    luck_results += f"Expected drops (lambda): {lambda_val}\n"
     average_drops = np.mean(poisson_samples)
     luck_results += f"Average drops (simulated): {average_drops:.4f}\n"
 
@@ -307,14 +289,15 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
     chance_of_at_least_one_drop = 1 - np.exp(-lambda_val)
     luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.4f}%\n"
     
-    chance_of_at_least_n_drops = poisson.cdf(lambda_val, lambda_val)
-    luck_results += f"Chance to receive {lambda_val:.0f} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"    
-    
-    chance_more_than_n = 1 - poisson.cdf(lambda_val, lambda_val)
-    luck_results += f"Chance to receive more than {lambda_val:.0f} drop(s): {chance_more_than_n * 100:.4f}%\n"
-    
-    chance_of_exactly_n_drops = poisson.pmf(lambda_val, lambda_val)
-    luck_results += f"Chance to get exactly {lambda_val:.0f} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
+    if lambda_val > 1:
+        chance_of_exactly_n_drops = poisson.pmf(lambda_val, lambda_val)
+        luck_results += f"Chance to receive exactly {lambda_val:.0f} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
+        
+        chance_of_at_least_n_drops = poisson.cdf(lambda_val, lambda_val)
+        luck_results += f"Chance to receive {lambda_val:.0f} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"    
+        
+        chance_more_than_n = 1 - poisson.cdf(lambda_val, lambda_val)
+        luck_results += f"Chance to receive more than {lambda_val:.0f} drop(s): {chance_more_than_n * 100:.4f}%\n"
     
     chance_no_drops = np.exp(-lambda_val)
     luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.2f}%\n"
