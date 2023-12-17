@@ -1,13 +1,12 @@
 import os
 import json
 import tkinter as tk
-import random
+import secrets
 import re
 import numpy as np
 from copy import copy
 from tkinter import ttk
 from fractions import Fraction
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from scipy.stats import poisson
 from matplotlib.ticker import FuncFormatter
@@ -78,7 +77,7 @@ drop_chance_entry.pack()
 time_per_kill_minutes_label = ttk.Label(window, text="Average Time per kill (minutes):")
 time_per_kill_minutes_label.pack()
 
-average_time_minutes = tk.StringVar(value="0")
+average_time_minutes = tk.StringVar(value="1")
 time_per_kill_minutes = ttk.Entry(window, textvariable=average_time_minutes)
 time_per_kill_minutes.pack()
 
@@ -153,8 +152,13 @@ def show_loot_items():
             data = json.load(file)
             simulated_loot[id]['highalch'] = 0 if data['highalch'] in [None, '', ' '] else data['highalch']
 
-    most_drops_item = max(simulated_loot, key=lambda item: simulated_loot[item].get('highalch', 0))
-    most_drops_item = simulated_loot[most_drops_item]
+    try:
+        most_drops_item = max(simulated_loot, key=lambda item: simulated_loot[item].get('highalch', 0))
+        most_drops_item = simulated_loot[most_drops_item]
+    except ValueError:
+        most_drops_item = None
+        error_label = tk.Label(loot_results_frame, text="Please select a monster.")
+        error_label.pack()
 
     for child in loot_results_frame.winfo_children():
         if isinstance(child, tk.Frame):
@@ -178,8 +182,8 @@ def simulate_loot(times=1):
             print(f'simulating loot for {_ + 1} time(s)')
             for item in loot:
                 if '-' in item['quantity']:
-                    item_quantity = random.randint(int(item['quantity'].split('-')[0]),
-                                                   int(item['quantity'].split('-')[1]))
+                    item_quantity = item_quantity = int(secrets.randbelow(int(item['quantity'].split('-')[1])) + int(item['quantity'].split('-')[0]))
+
                 else:
                     item_quantity = int(item['quantity'])
                 if item['rarity'] == 1:
@@ -194,7 +198,7 @@ def simulate_loot(times=1):
                     decimal_value = item['rarity']
                     fraction = Fraction(decimal_value)
                     drop_rate = Fraction(1, round((fraction.denominator / fraction.numerator)))
-                    n = random.randint(1, drop_rate.denominator)
+                    n = n = int(secrets.randbelow(drop_rate.denominator) + 1)
                     if n == drop_rate.denominator:
                         show_loot = True
                         if item['id'] in simulated_loot:
@@ -202,8 +206,8 @@ def simulate_loot(times=1):
                             continue
                         simulated_loot[item['id']] = copy(item)
                         simulated_loot[item['id']]['quantity'] = item_quantity
-    for child in loot_results_frame.winfo_children():
-        child.destroy()
+        for child in loot_results_frame.winfo_children():
+            child.destroy()
 
     show_loot_items()
 
@@ -223,7 +227,7 @@ def percentage_formatter(x, pos):
 def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
     lambda_val = num_kills * drop_chance
     # Simulate Poisson distribution
-    poisson_samples = np.random.poisson(lambda_val, int(num_kills))
+    poisson_samples = np.array([secrets.choice(np.random.poisson(lambda_val, 1)) for _ in range(int(num_kills))])
 
     # Display luck simulation results on the graph
     luck_results = f"Simulated kills: {num_kills}\n"
@@ -251,7 +255,6 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
     ax.legend(loc='upper right')
     ax.yaxis.set_major_formatter(FuncFormatter(percentage_formatter))
 
-    
     if any(poisson_samples):
         time_to_finish = (float(time_per_kill_minutes) * 60 + float(time_per_kill_seconds))*num_kills
         if time_to_finish is not None:
@@ -318,6 +321,9 @@ def simulate_drop_probability():
 
     simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes, time_per_kill_seconds, show_pmf, pmf_opacity)
 
+def reset():
+    for child in loot_results_frame.winfo_children():
+        child.destroy()
 
 loot_button.configure(command=simulate_loot)
 simulate_x.configure(command=simulate_xloot)
@@ -325,10 +331,6 @@ simulate_100x.configure(command=simulate_100xloot)
 simulate_1000x.configure(command=simulate_1000xloot)
 simulate_button = ttk.Button(window, text="Simulate Drop Probability", command=simulate_drop_probability)
 simulate_button.pack()
-
-def reset():
-    for child in loot_results_frame.winfo_children():
-        child.destroy()
 
 reset_button = ttk.Button(window, text="Reset", command=reset)
 reset_button.pack()
