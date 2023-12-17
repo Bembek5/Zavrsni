@@ -222,7 +222,6 @@ def percentage_formatter(x, pos):
 
 def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
     lambda_val = num_kills * drop_chance
-
     # Simulate Poisson distribution
     poisson_samples = np.random.poisson(lambda_val, int(num_kills))
 
@@ -304,13 +303,12 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
             time_format = time_format.rstrip(', ')
 
             luck_results += f"Time needed for {num_kills} kills: {time_format}\n"
-
-    chance_no_drops = np.exp(-lambda_val)
-    luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.2f}%\n"
     
     chance_of_at_least_one_drop = 1 - np.exp(-lambda_val)
     luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.4f}%\n"
     
+    chance_of_at_least_n_drops = poisson.cdf(lambda_val, lambda_val)
+    luck_results += f"Chance to receive {lambda_val:.0f} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"    
     
     chance_more_than_n = 1 - poisson.cdf(lambda_val, lambda_val)
     luck_results += f"Chance to receive more than {lambda_val:.0f} drop(s): {chance_more_than_n * 100:.4f}%\n"
@@ -318,10 +316,9 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
     chance_of_exactly_n_drops = poisson.pmf(lambda_val, lambda_val)
     luck_results += f"Chance to get exactly {lambda_val:.0f} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
     
-    chance_of_at_least_n_drops = chance_more_than_n + chance_of_exactly_n_drops
-    luck_results += f"Chance to receive {lambda_val:.0f} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"
+    chance_no_drops = np.exp(-lambda_val)
+    luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.2f}%\n"
 
-    
     luck_label.config(text=luck_results)
 
     plt.show()
