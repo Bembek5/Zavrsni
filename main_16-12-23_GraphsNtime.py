@@ -227,7 +227,7 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
 
     # Display luck simulation results on the graph
     luck_results = f"Simulated kills: {num_kills}\n"
-    luck_results += f"Expected drops (lambda): {lambda_val:.2f}\n"
+    luck_results += f"Expected drops (lambda): {lambda_val:.4f}\n"
     average_drops = np.mean(poisson_samples)
     luck_results += f"Average drops (simulated): {average_drops:.4f}\n"
 
@@ -250,12 +250,6 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
     ax.grid(True)
     ax.legend(loc='upper right')
     ax.yaxis.set_major_formatter(FuncFormatter(percentage_formatter))
-    
-    # Display luck simulation results on the graph
-    luck_results = f"Simulated kills: {num_kills}\n"
-    luck_results += f"Expected drops (lambda): {lambda_val}\n"
-    average_drops = np.mean(poisson_samples)
-    luck_results += f"Average drops (simulated): {average_drops:.4f}\n"
 
     
     if any(poisson_samples):
@@ -300,7 +294,7 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
         luck_results += f"Chance to receive more than {lambda_val:.0f} drop(s): {chance_more_than_n * 100:.4f}%\n"
     
     chance_no_drops = np.exp(-lambda_val)
-    luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.2f}%\n"
+    luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.4f}%\n"
 
     luck_label.config(text=luck_results)
 
