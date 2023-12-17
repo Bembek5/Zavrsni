@@ -75,12 +75,6 @@ chance_input_var = tk.StringVar(value="0.008")
 drop_chance_entry = ttk.Entry(window, textvariable=chance_input_var)
 drop_chance_entry.pack()
 
-received_drops_label = ttk.Label(window, text="Number of Drops:")
-received_drops_label.pack()
-received_drops_var = tk.StringVar(value="1")
-received_drops_entry = ttk.Entry(window, textvariable=received_drops_var)
-received_drops_entry.pack()
-
 time_per_kill_minutes_label = ttk.Label(window, text="Average Time per kill (minutes):")
 time_per_kill_minutes_label.pack()
 
@@ -226,15 +220,35 @@ def percentage_formatter(x, pos):
     return f"{x:.1%}"
 
 
-def simulate_poisson_distribution(num_kills, drop_chance, received_drops, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
-    if received_drops > 1:
-        lambda_val = num_kills * drop_chance * received_drops
-        print("Lambda:", lambda_val)
-    else:
-        lambda_val = num_kills * drop_chance
-        print("Lambda without received drops", lambda_val)
+def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
+    lambda_val = num_kills * drop_chance
+
+    # Simulate Poisson distribution
     poisson_samples = np.random.poisson(lambda_val, int(num_kills))
-        
+
+    # Display luck simulation results on the graph
+    luck_results = f"Simulated kills: {num_kills}\n"
+    luck_results += f"Expected drops (lambda): {lambda_val:.2f}\n"
+    average_drops = np.mean(poisson_samples)
+    luck_results += f"Average drops (simulated): {average_drops:.4f}\n"
+
+    # Calculate and display various probabilities
+    chance_no_drops = np.exp(-lambda_val)
+    luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.2f}%\n"
+
+    chance_of_at_least_one_drop = 1 - np.exp(-lambda_val)
+    luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.4f}%\n"
+
+    chance_of_at_least_n_drops = 1 - np.sum(poisson.pmf(np.arange(0, int(num_kills)), lambda_val))
+    luck_results += f"Chance to receive at least {num_kills:.0f} drop(s): {chance_of_at_least_n_drops * 100:.4f}%\n"
+
+    chance_more_than_n = 1 - chance_of_at_least_n_drops
+    luck_results += f"Chance to receive more than {num_kills:.0f} drop(s): {chance_more_than_n * 100:.4f}%\n"
+
+    chance_of_exactly_n_drops = poisson.pmf(int(num_kills), lambda_val)
+    luck_results += f"Chance to get exactly {num_kills:.0f} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
+
+    luck_label.config(text=luck_results)
 
     # Create subplot with bars for Poisson distribution
     fig, ax = plt.subplots(figsize=(8, 6))
@@ -248,13 +262,12 @@ def simulate_poisson_distribution(num_kills, drop_chance, received_drops, time_p
     if show_pmf:
         # Plot PMF as individual bars with opacity
         pmf_values = poisson.pmf(np.arange(0, max(poisson_samples) + 1), lambda_val)
-        bars = ax.bar(np.arange(0, max(poisson_samples) + 1), pmf_values, alpha=pmf_opacity, color='red', edgecolor='black', label='Probability Mass Function')
+        ax.bar(np.arange(0, max(poisson_samples) + 1), pmf_values, alpha=pmf_opacity, color='red', edgecolor='black', label='Probability Mass Function')
 
     ax.set_xlabel('Number of Drops')
     ax.set_ylabel('Probability * 100, chance of obtaining exact number of drops')
     ax.grid(True)
     ax.legend(loc='upper right')
-    
     ax.yaxis.set_major_formatter(FuncFormatter(percentage_formatter))
     
     # Display luck simulation results on the graph
@@ -294,10 +307,21 @@ def simulate_poisson_distribution(num_kills, drop_chance, received_drops, time_p
 
     chance_no_drops = np.exp(-lambda_val)
     luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.2f}%\n"
-    luck_label.config(text=luck_results)
     
     chance_of_at_least_one_drop = 1 - np.exp(-lambda_val)
-    luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.2f}%\n"
+    luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.4f}%\n"
+    
+    
+    chance_more_than_n = 1 - poisson.cdf(lambda_val, lambda_val)
+    luck_results += f"Chance to receive more than {lambda_val:.0f} drop(s): {chance_more_than_n * 100:.4f}%\n"
+    
+    chance_of_exactly_n_drops = poisson.pmf(lambda_val, lambda_val)
+    luck_results += f"Chance to get exactly {lambda_val:.0f} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
+    
+    chance_of_at_least_n_drops = chance_more_than_n + chance_of_exactly_n_drops
+    luck_results += f"Chance to receive {lambda_val:.0f} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"
+
+    
     luck_label.config(text=luck_results)
 
     plt.show()
@@ -309,7 +333,6 @@ def simulate_drop_probability():
     try:
         num_kills = int(user_input_kills_var.get())
         drop_chance = float(chance_input_var.get())
-        received_drops = int(received_drops_var.get())
         time_per_kill_minutes = average_time_minutes.get()
         time_per_kill_seconds = average_time_seconds.get()
         show_pmf = pmf_checkbox_var.get()
@@ -319,7 +342,7 @@ def simulate_drop_probability():
         error_label.pack()
         return
 
-    simulate_poisson_distribution(num_kills, drop_chance, received_drops, time_per_kill_minutes, time_per_kill_seconds, show_pmf, pmf_opacity)
+    simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes, time_per_kill_seconds, show_pmf, pmf_opacity)
 
 
 loot_button.configure(command=simulate_loot)
