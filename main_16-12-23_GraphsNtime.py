@@ -38,7 +38,7 @@ monster_dropdown['values'] = list(set([monster_data['name'] for monster_data in 
 monster_dropdown.pack()
 
 search_var = tk.StringVar()
-search_var.set("Or use this search...")
+search_var.set("Search...")
 search_entry = ttk.Entry(window, textvariable=search_var)
 search_entry.pack()
 
@@ -198,7 +198,7 @@ def simulate_loot(times=1):
                     decimal_value = item['rarity']
                     fraction = Fraction(decimal_value)
                     drop_rate = Fraction(1, round((fraction.denominator / fraction.numerator)))
-                    n = n = int(secrets.randbelow(drop_rate.denominator) + 1)
+                    n = int(secrets.randbelow(drop_rate.denominator) + 1)
                     if n == drop_rate.denominator:
                         show_loot = True
                         if item['id'] in simulated_loot:
@@ -310,7 +310,7 @@ def simulate_drop_probability():
     try:
         num_kills = int(user_input_kills_var.get())
         if not (0 < num_kills <= 1000000):
-            raise ValueError("Please simulate no more than 1 million tries.")
+            raise ValueError("Please simulate no more than 1 million kills.")
         drop_chance = float(chance_input_var.get())
         if not (0 < drop_chance < 1):
             raise ValueError("Drop chance must be between 0 and 1.")
