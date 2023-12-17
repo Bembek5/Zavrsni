@@ -38,7 +38,7 @@ monster_dropdown['values'] = list(set([monster_data['name'] for monster_data in 
 monster_dropdown.pack()
 
 search_var = tk.StringVar()
-search_var.set("Search...")
+search_var.set("Or use this search...")
 search_entry = ttk.Entry(window, textvariable=search_var)
 search_entry.pack()
 
@@ -309,13 +309,21 @@ def simulate_drop_probability():
         widget.destroy()
     try:
         num_kills = int(user_input_kills_var.get())
+        if not (0 < num_kills <= 1000000):
+            raise ValueError("Please simulate no more than 1 million tries.")
         drop_chance = float(chance_input_var.get())
-        time_per_kill_minutes = average_time_minutes.get()
-        time_per_kill_seconds = average_time_seconds.get()
+        if not (0 < drop_chance < 1):
+            raise ValueError("Drop chance must be between 0 and 1.")
+        time_per_kill_minutes = int(average_time_minutes.get())
+        if not (0 <= time_per_kill_minutes <= 1440):
+            raise ValueError("Time in minutes needs to be less than 1440 minutes (24 hours).")
+        time_per_kill_seconds = int(average_time_seconds.get())
+        if not (0 <= time_per_kill_seconds < 60):
+            raise ValueError("Time in seconds needs to be between 0 and 59 seconds.")
         show_pmf = pmf_checkbox_var.get()
         pmf_opacity = pmf_opacity_slider.get() / 100.0
-    except ValueError:
-        error_label = tk.Label(loot_results_frame, text="Invalid input. Please enter valid numbers.")
+    except ValueError as e:
+        error_label = tk.Label(loot_results_frame, text=str(e))
         error_label.pack()
         return
 
