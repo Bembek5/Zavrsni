@@ -227,12 +227,12 @@ def percentage_formatter(x, pos):
 
 
 def simulate_poisson_distribution(num_kills, drop_chance, received_drops, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
-    if received_drops > 0:
+    if received_drops > 1:
         lambda_val = num_kills * drop_chance * received_drops
-        print("Lambda:", lambda_val)
+        print("Lambda (custom):", lambda_val)
     else:
         lambda_val = num_kills * drop_chance
-        print("Lambda without received drops", lambda_val)
+        print("Lambda (normal):", lambda_val)
     poisson_samples = np.random.poisson(lambda_val, int(num_kills))
         
 
@@ -293,11 +293,11 @@ def simulate_poisson_distribution(num_kills, drop_chance, received_drops, time_p
             luck_results += f"Time needed for {num_kills} kills: {time_format}\n"
 
     chance_no_drops = np.exp(-lambda_val)
-    luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.2f}%\n"
+    luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.4f}%\n"
     luck_label.config(text=luck_results)
     
-    chance_of_at_least_one_drop = 1 - np.exp(-lambda_val)
-    luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.2f}%\n"
+    chance_of_at_least_n_drops = 1 - np.exp(-lambda_val)
+    luck_results += f"Chance to receive at least {received_drops} number of drops is: {chance_of_at_least_n_drops * 100: .4f}%\n"
     luck_label.config(text=luck_results)
 
     plt.show()
