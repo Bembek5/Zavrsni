@@ -250,13 +250,31 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
         # Plot PMF as individual bars with opacity
         pmf_values = poisson.pmf(np.arange(0, max(poisson_samples) + 1), lambda_val)
         ax.bar(np.arange(0, max(poisson_samples) + 1), pmf_values, alpha=pmf_opacity, color='red', edgecolor='black', label='Probability Mass Function')
+        
+    input_rarity_fraction, input_rarity_percentage = convert_rarity(drop_chance)
 
-    ax.set_xlabel(f"Number of simulated drops in {num_kills} tries")
+    ax.set_xlabel(f"Number of drops \n {num_kills} tries with Rarity: {input_rarity_fraction} ({input_rarity_percentage}%) chance on each try; lambda (tries * chance): {lambda_val:0.4f}")
     ax.set_ylabel('Probability * 100, Chance for exactly N drops [%]')
     ax.grid(True)
     ax.legend(loc='upper right')
     ax.yaxis.set_major_formatter(FuncFormatter(percentage_formatter))
-
+    
+    chance_of_at_least_one_drop = 1 - np.exp(-lambda_val)
+    luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.4f}%\n"
+    
+    if lambda_val > 1:
+        chance_of_exactly_n_drops = poisson.pmf(lambda_val, lambda_val)
+        luck_results += f"Chance to receive exactly {lambda_val:.0f} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
+        
+        chance_of_at_least_n_drops = poisson.cdf(lambda_val, lambda_val)
+        luck_results += f"Chance to receive {lambda_val:.0f} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"    
+    
+        chance_more_than_n = 1 - poisson.cdf(lambda_val, lambda_val)
+        luck_results += f"Chance to receive more than {lambda_val:.0f} drop(s): {chance_more_than_n * 100:.4f}%\n"
+    
+    chance_no_drops = np.exp(-lambda_val)
+    luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.4f}%\n"
+    
     if any(poisson_samples):
         time_to_finish = (float(time_per_kill_minutes) * 60 + float(time_per_kill_seconds))*num_kills
         if time_to_finish is not None:
@@ -282,23 +300,7 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
             # Remove trailing comma and space
             time_format = time_format.rstrip(', ')
 
-            luck_results += f"Time needed for {num_kills} kills: {time_format}\n"
-    
-    chance_of_at_least_one_drop = 1 - np.exp(-lambda_val)
-    luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.4f}%\n"
-    
-    if lambda_val > 1:
-        chance_of_exactly_n_drops = poisson.pmf(lambda_val, lambda_val)
-        luck_results += f"Chance to receive exactly {lambda_val:.0f} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
-        
-        chance_of_at_least_n_drops = poisson.cdf(lambda_val, lambda_val)
-        luck_results += f"Chance to receive {lambda_val:.0f} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"    
-    
-        chance_more_than_n = 1 - poisson.cdf(lambda_val, lambda_val)
-        luck_results += f"Chance to receive more than {lambda_val:.0f} drop(s): {chance_more_than_n * 100:.4f}%\n"
-    
-    chance_no_drops = np.exp(-lambda_val)
-    luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.4f}%\n"
+            luck_results += f"Time needed for {num_kills} tries: {time_format}\n"
 
     luck_label.config(text=luck_results)
     
@@ -358,7 +360,7 @@ pmf_checkbox.pack()
 # Add a slider for PMF opacity
 pmf_opacity_label = ttk.Label(window, text="PMF Opacity:")
 pmf_opacity_label.pack()
-pmf_opacity_slider = ttk.Scale(window, from_=10, to=100, orient=tk.HORIZONTAL, length=100)
+pmf_opacity_slider = ttk.Scale(window, from_=0, to=100, orient=tk.HORIZONTAL, length=200)
 pmf_opacity_slider.set(21)  # Default opacity %
 pmf_opacity_slider.pack()
 
