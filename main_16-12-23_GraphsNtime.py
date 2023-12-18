@@ -251,7 +251,7 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
         pmf_values = poisson.pmf(np.arange(0, max(poisson_samples) + 1), lambda_val)
         ax.bar(np.arange(0, max(poisson_samples) + 1), pmf_values, alpha=pmf_opacity, color='red', edgecolor='black', label='Probability Mass Function')
 
-    ax.set_xlabel(f"Number of drops one can expect in {num_kills} tries.")
+    ax.set_xlabel(f"Number of simulated drops in {num_kills} tries")
     ax.set_ylabel('Probability * 100, Chance for exactly N drops [%]')
     ax.grid(True)
     ax.legend(loc='upper right')
@@ -311,7 +311,7 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
 
     plt.show()
 
-# Function to handle the "Calculate Drop Probability" button click
+# Function to handle the "Simulate Drop Probability" button click
 def simulate_drop_probability():
     for widget in loot_results_frame.winfo_children():
         widget.destroy()
