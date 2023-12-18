@@ -26,8 +26,8 @@ except:
 
 window = tk.Tk()
 window.title("Monster Loot Simulator")
-window_width = 800
-window_height = 600
+window_width = 600
+window_height = 700
 screen_width = window.winfo_screenwidth()
 screen_height = window.winfo_screenheight()
 x_position = (screen_width - window_width) // 2
@@ -53,16 +53,16 @@ def search_monster(event=None):
 
 search_entry.bind("<KeyRelease>", search_monster)
 
-loot_button = ttk.Button(window, text="Simulate Loot")
+loot_button = ttk.Button(window, text="Simulate  1x     Loot")
 loot_button.pack()
 
-simulate_100x = ttk.Button(window, text="Simulate 100x Loot")
+simulate_100x = ttk.Button(window, text="Simulate 100x  Loot")
 simulate_100x.pack()
 
 simulate_1000x = ttk.Button(window, text="Simulate 1000x Loot")
 simulate_1000x.pack()
 
-user_input_kills_label = ttk.Label(window, text="Number of kills to simulate:")
+user_input_kills_label = ttk.Label(window, text="Number of kills / tries to simulate:")
 user_input_kills_label.pack()
 user_input_kills_var = tk.StringVar(value="1250")
 num_kills = ttk.Entry(window, textvariable=user_input_kills_var)
@@ -73,7 +73,7 @@ simulate_x.pack()
 
 num_drops_label = ttk.Label(window, text="Number of Drops / Occurances:")
 num_drops_label.pack()
-num_drops = tk.StringVar(value="1")
+num_drops = tk.StringVar(value="10")
 num_drops_entry = ttk.Entry(window, textvariable=num_drops)
 num_drops_entry.pack()
 
@@ -112,7 +112,7 @@ loot_results_frame.pack(fill=tk.BOTH, expand=True)
 loot_scrollbar = tk.Scrollbar(loot_canvas, orient=tk.VERTICAL, command=loot_canvas.yview)
 loot_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 loot_canvas.configure(yscrollcommand=loot_scrollbar.set)
-loot_canvas.create_window((0, 0), window=loot_results_frame, anchor=tk.NW)
+loot_canvas.create_window((8, 6), window=loot_results_frame, anchor=tk.NW)
 
 def on_canvas_configure(event):
     loot_canvas.configure(scrollregion=loot_canvas.bbox("all"))
@@ -128,10 +128,6 @@ def convert_rarity(rarity):
     fraction = Fraction(rarity).limit_denominator(1000)
     percentage = rarity * 100
     return fraction, percentage
-
-def reset():
-    for child in loot_results_frame.winfo_children():
-        child.destroy()
 
 simulated_loot = {}
 
@@ -189,8 +185,8 @@ def simulate_loot(times=1):
     selected_monster_data = next((monster_data for monster_data in monsters_data.values() if monster_data['name'] == selected_monster_name),None)
     if selected_monster_data:
         loot = selected_monster_data['drops']
-        for _ in range(times):
-            print(f'simulating loot for {_ + 1} time(s)')
+        for i in range(times):
+            print(f'simulating loot for {i + 1} time(s)')
             for item in loot:
                 if '-' in item['quantity']:
                     item_quantity = item_quantity = int(secrets.randbelow(int(item['quantity'].split('-')[1])) + int(item['quantity'].split('-')[0]))
@@ -216,8 +212,6 @@ def simulate_loot(times=1):
                             continue
                         simulated_loot[item['id']] = copy(item)
                         simulated_loot[item['id']]['quantity'] = item_quantity
-        for child in loot_results_frame.winfo_children():
-            child.destroy()
     show_loot_items()
     
 def simulate_xloot():
@@ -226,8 +220,10 @@ def simulate_xloot():
             raise ValueError("Please simulate no more than 1 million kills.")
         else:
             simulate_loot(num_kills)
+            
 def simulate_100xloot():
     simulate_loot(100)
+    
 def simulate_1000xloot():
     simulate_loot(1000)
 
@@ -239,7 +235,7 @@ def percentage_formatter(x, pos):
 def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
     lambda_val = num_kills * drop_probability
     # Simulate Poisson distribution
-    poisson_samples = np.array([secrets.choice(np.random.poisson(lambda_val, num_drops)) for _ in range(int(num_kills))])
+    poisson_samples = np.array([secrets.choice(np.random.poisson(lambda_val, num_drops)) for i in range(int(num_kills))])
 
     # Display luck simulation results on the graph
     luck_results = f"Simulated kills: {num_kills}\n"
@@ -259,7 +255,7 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
     if show_pmf:
         # Plot PMF as individual bars with opacity
         pmf_values = poisson.pmf(np.arange(0, max(poisson_samples) + 1), lambda_val)
-        ax.bar(np.arange(0, max(poisson_samples) + 1), pmf_values, alpha=pmf_opacity, color='red', edgecolor='black', label='Probability Mass Function')
+        ax.bar(np.arange(0, max(poisson_samples) + 1), pmf_values, alpha=pmf_opacity, color='red', edgecolor='black', label='Probability Mass Function (calculated)')
         
     input_rarity_fraction, input_rarity_percentage = convert_rarity(drop_probability)
 
@@ -325,8 +321,6 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
 
 # Function to handle the "Simulate Drop Probability" button click
 def simulate_drop_probability():
-    for widget in loot_results_frame.winfo_children():
-        widget.destroy()
     try:
         num_kills = int(user_input_kills_var.get())
         if not (0 < num_kills <= 1000000):
@@ -359,10 +353,15 @@ simulate_1000x.configure(command=simulate_1000xloot)
 simulate_button = ttk.Button(window, text="Simulate Drop Probability", command=simulate_drop_probability)
 simulate_button.pack()
 
+def reset():
+    for child in loot_results_frame.winfo_children():
+        child.destroy()
+
 reset_button = ttk.Button(window, text="Reset", command=reset)
 reset_button.pack()
 
-pmf_checkbox_var = tk.BooleanVar(value=False)  # Set to False for unchecked by default
+# pmf calculated graph
+pmf_checkbox_var = tk.BooleanVar(value=True)
 pmf_checkbox = ttk.Checkbutton(window, text="Show Probability Mass Function (Calculated)", variable=pmf_checkbox_var, command=simulate_drop_probability)
 pmf_checkbox.pack()
 
