@@ -12,15 +12,17 @@ from scipy.stats import poisson
 from matplotlib.ticker import FuncFormatter
 import mplcursors
 
-
-with open('monsters-complete.json') as file:
-    monsters_data = json.load(file)
-    monsters_data = {monster['name']: monster for monster_id, monster in monsters_data.items() if monster['drops'] != []}
-    for id, monster in monsters_data.items():
-        for drop in monster['drops']:
-            if drop['rolls'] > 1:
-                drop['rarity'] = drop['rarity'] * drop['rolls']
-                drop['rolls'] = 1
+try:
+    with open('monsters-complete.json') as file:
+        monsters_data = json.load(file)
+        monsters_data = {monster['name']: monster for monster_id, monster in monsters_data.items() if monster['drops'] != []}
+        for id, monster in monsters_data.items():
+            for drop in monster['drops']:
+                if drop['rolls'] > 1:
+                    drop['rarity'] = drop['rarity'] * drop['rolls']
+                    drop['rolls'] = 1
+except:
+    print("Could not find monsters-complete.json")
  
 window = tk.Tk()
 window.title("Monster Loot Simulator")
@@ -218,6 +220,9 @@ def simulate_100xloot():
     simulate_loot(100)
 def simulate_1000xloot():
     simulate_loot(1000)
+
+open_figures = []
+    
 def percentage_formatter(x, pos):
     return f"{x:.1%}"
 
@@ -296,6 +301,13 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
     luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.4f}%\n"
 
     luck_label.config(text=luck_results)
+    
+    open_figures.append(fig)
+
+    # Close the oldest figure if the limit is reached
+    if len(open_figures) > 5:
+        oldest_figure = open_figures.pop(0)
+        plt.close(oldest_figure)
 
     plt.show()
 
