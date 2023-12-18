@@ -129,6 +129,10 @@ def convert_rarity(rarity):
     percentage = rarity * 100
     return fraction, percentage
 
+def reset():
+    for child in loot_results_frame.winfo_children():
+        child.destroy()
+
 simulated_loot = {}
 
 def show_loot_items():
@@ -212,6 +216,7 @@ def simulate_loot(times=1):
                             continue
                         simulated_loot[item['id']] = copy(item)
                         simulated_loot[item['id']]['quantity'] = item_quantity
+        reset()
     show_loot_items()
     
 def simulate_xloot():
@@ -227,7 +232,7 @@ def simulate_100xloot():
 def simulate_1000xloot():
     simulate_loot(1000)
 
-open_figures = []
+open_graphs = []
     
 def percentage_formatter(x, pos):
     return f"{x:.1%}"
@@ -259,14 +264,11 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
         
     input_rarity_fraction, input_rarity_percentage = convert_rarity(drop_probability)
 
-    ax.set_xlabel(f"Number of drops \n in {num_kills} tries with Rarity: {input_rarity_fraction} ({input_rarity_percentage}%) chance on each try; lambda (calculated): {lambda_val:0.4f}")
+    ax.set_xlabel(f"Number of drops \n in {num_kills} tries with Rarity: {input_rarity_fraction} ({input_rarity_percentage:.2f}%) chance on each try; lambda (calculated): {lambda_val:0.4f}")
     ax.set_ylabel('Probability * 100, Chance for exactly N drops [%]')
     ax.grid(True)
-    ax.legend(loc='upper right')
+    ax.legend(loc='best', frameon=False)
     ax.yaxis.set_major_formatter(FuncFormatter(percentage_formatter))
-    
-    chance_of_at_least_one_drop = 1 - np.exp(-lambda_val)
-    luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.4f}%\n"
     
     if lambda_val > 1:
         chance_of_exactly_n_drops = poisson.pmf(num_drops, lambda_val)
@@ -275,14 +277,17 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
         chance_of_at_least_n_drops = poisson.cdf(num_drops, lambda_val)
         luck_results += f"Chance to receive {num_drops} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"    
     
-        chance_more_than_n = 1 - poisson.cdf(num_drops, lambda_val)
+        chance_more_than_n = poisson.sf(num_drops, lambda_val)
         luck_results += f"Chance to receive more than {num_drops} drop(s): {chance_more_than_n * 100:.4f}%\n"
+    
+    chance_of_at_least_one_drop = 1 - np.exp(-lambda_val)
+    luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.4f}%\n"
     
     chance_no_drops = np.exp(-lambda_val)
     luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.4f}%\n"
     
     if any(poisson_samples):
-        time_to_finish = (float(time_per_kill_minutes) * 60 + float(time_per_kill_seconds))*num_kills
+        time_to_finish = (float(time_per_kill_minutes) * 60 + float(time_per_kill_seconds)) * num_kills
         if time_to_finish is not None:
             years, remainder = divmod(time_to_finish, 31556952)  # 365.25 days in a year on average
             months, remainder = divmod(remainder, 2629746)  # 30.44 days in a month on average
@@ -310,11 +315,11 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
 
     luck_label.config(text=luck_results)
     
-    open_figures.append(fig)
+    open_graphs.append(fig)
 
     # Close the oldest figure if the limit is reached
-    if len(open_figures) > 5:
-        oldest_figure = open_figures.pop(0)
+    if len(open_graphs) > 5:
+        oldest_figure = open_graphs.pop(0)
         plt.close(oldest_figure)
 
     plt.show()
@@ -352,10 +357,6 @@ simulate_100x.configure(command=simulate_100xloot)
 simulate_1000x.configure(command=simulate_1000xloot)
 simulate_button = ttk.Button(window, text="Simulate Drop Probability", command=simulate_drop_probability)
 simulate_button.pack()
-
-def reset():
-    for child in loot_results_frame.winfo_children():
-        child.destroy()
 
 reset_button = ttk.Button(window, text="Reset", command=reset)
 reset_button.pack()
