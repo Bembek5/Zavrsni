@@ -71,11 +71,11 @@ num_kills.pack()
 simulate_x = ttk.Button(window, text="Simulate X (Custom) Loot")
 simulate_x.pack()
 
-chance_input_label = ttk.Label(window, text="Drop Chance (Decimal):")
+chance_input_label = ttk.Label(window, text="Drop probability (Decimal):")
 chance_input_label.pack()
 chance_input_var = tk.StringVar(value="0.008")
-drop_chance_entry = ttk.Entry(window, textvariable=chance_input_var)
-drop_chance_entry.pack()
+drop_probability_entry = ttk.Entry(window, textvariable=chance_input_var)
+drop_probability_entry.pack()
 
 time_per_kill_minutes_label = ttk.Label(window, text="Average Time per kill (minutes):")
 time_per_kill_minutes_label.pack()
@@ -226,8 +226,8 @@ open_figures = []
 def percentage_formatter(x, pos):
     return f"{x:.1%}"
 
-def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
-    lambda_val = num_kills * drop_chance
+def simulate_poisson_distribution(num_kills, drop_probability, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
+    lambda_val = num_kills * drop_probability
     # Simulate Poisson distribution
     poisson_samples = np.array([secrets.choice(np.random.poisson(lambda_val, 1)) for _ in range(int(num_kills))])
 
@@ -251,9 +251,9 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
         pmf_values = poisson.pmf(np.arange(0, max(poisson_samples) + 1), lambda_val)
         ax.bar(np.arange(0, max(poisson_samples) + 1), pmf_values, alpha=pmf_opacity, color='red', edgecolor='black', label='Probability Mass Function')
         
-    input_rarity_fraction, input_rarity_percentage = convert_rarity(drop_chance)
+    input_rarity_fraction, input_rarity_percentage = convert_rarity(drop_probability)
 
-    ax.set_xlabel(f"Number of drops \n {num_kills} tries with Rarity: {input_rarity_fraction} ({input_rarity_percentage}%) chance on each try; lambda (tries * chance): {lambda_val:0.4f}")
+    ax.set_xlabel(f"Number of drops \n {num_kills} tries with Rarity: {input_rarity_fraction} ({input_rarity_percentage}%) chance on each try; lambda (calculated): {lambda_val:0.4f}")
     ax.set_ylabel('Probability * 100, Chance for exactly N drops [%]')
     ax.grid(True)
     ax.legend(loc='upper right')
@@ -321,9 +321,9 @@ def simulate_drop_probability():
         num_kills = int(user_input_kills_var.get())
         if not (0 < num_kills <= 1000000):
             raise ValueError("Please simulate no more than 1 million kills.")
-        drop_chance = float(chance_input_var.get())
-        if not (0 < drop_chance < 1):
-            raise ValueError("Drop chance must be between 0 and 1.")
+        drop_probability = float(chance_input_var.get())
+        if not (0 < drop_probability < 1):
+            raise ValueError("Drop probability must be between 0 and 1.")
         time_per_kill_minutes = int(average_time_minutes.get())
         if not (0 <= time_per_kill_minutes < 1440):
             raise ValueError("Time in minutes needs to be between 0 and 1440 minutes (<24 hours).")
@@ -337,7 +337,7 @@ def simulate_drop_probability():
         error_label.pack()
         return
 
-    simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes, time_per_kill_seconds, show_pmf, pmf_opacity)
+    simulate_poisson_distribution(num_kills, drop_probability, time_per_kill_minutes, time_per_kill_seconds, show_pmf, pmf_opacity)
 
 def reset():
     for child in loot_results_frame.winfo_children():
