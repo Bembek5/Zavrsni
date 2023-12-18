@@ -264,7 +264,7 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
         
     input_rarity_fraction, input_rarity_percentage = convert_rarity(drop_probability)
 
-    ax.set_xlabel(f"Number of drops \n in {num_kills} tries with Rarity: {input_rarity_fraction} ({input_rarity_percentage:.2f}%) chance on each try; lambda (calculated): {lambda_val:0.4f}")
+    ax.set_xlabel(f"Number of drops \n in {num_kills} tries with Rarity: {input_rarity_fraction} ({input_rarity_percentage:.4f}%) chance on each try; lambda (calculated): {lambda_val:0.4f}")
     ax.set_ylabel('Probability * 100, Chance for exactly N drops [%]')
     ax.grid(True)
     ax.legend(loc='best', frameon=False)
