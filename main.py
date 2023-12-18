@@ -23,7 +23,7 @@ try:
                     drop['rolls'] = 1
 except:
     print("Could not find monsters-complete.json")
- 
+
 window = tk.Tk()
 window.title("Monster Loot Simulator")
 window_width = 800
@@ -71,20 +71,26 @@ num_kills.pack()
 simulate_x = ttk.Button(window, text="Simulate X (Custom) Loot")
 simulate_x.pack()
 
+num_drops_label = ttk.Label(window, text="Number of Drops / Occurances:")
+num_drops_label.pack()
+num_drops = tk.StringVar(value="1")
+num_drops_entry = ttk.Entry(window, textvariable=num_drops)
+num_drops_entry.pack()
+
 chance_input_label = ttk.Label(window, text="Drop probability (Decimal):")
 chance_input_label.pack()
 chance_input_var = tk.StringVar(value="0.008")
 drop_probability_entry = ttk.Entry(window, textvariable=chance_input_var)
 drop_probability_entry.pack()
 
-time_per_kill_minutes_label = ttk.Label(window, text="Average Time per kill (minutes):")
+time_per_kill_minutes_label = ttk.Label(window, text="Average Time per kill / roll (minutes):")
 time_per_kill_minutes_label.pack()
 
 average_time_minutes = tk.StringVar(value="1")
 time_per_kill_minutes = ttk.Entry(window, textvariable=average_time_minutes)
 time_per_kill_minutes.pack()
 
-time_per_kill_seconds_label = ttk.Label(window, text="Average Time per kill (seconds):")
+time_per_kill_seconds_label = ttk.Label(window, text="Average Time per kill / roll (seconds):")
 time_per_kill_seconds_label.pack()
 
 average_time_seconds = tk.StringVar(value="30")
@@ -122,6 +128,10 @@ def convert_rarity(rarity):
     fraction = Fraction(rarity).limit_denominator(1000)
     percentage = rarity * 100
     return fraction, percentage
+
+def reset():
+    for child in loot_results_frame.winfo_children():
+        child.destroy()
 
 simulated_loot = {}
 
@@ -226,10 +236,10 @@ open_figures = []
 def percentage_formatter(x, pos):
     return f"{x:.1%}"
 
-def simulate_poisson_distribution(num_kills, drop_probability, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
+def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
     lambda_val = num_kills * drop_probability
     # Simulate Poisson distribution
-    poisson_samples = np.array([secrets.choice(np.random.poisson(lambda_val, 1)) for _ in range(int(num_kills))])
+    poisson_samples = np.array([secrets.choice(np.random.poisson(lambda_val, num_drops)) for _ in range(int(num_kills))])
 
     # Display luck simulation results on the graph
     luck_results = f"Simulated kills: {num_kills}\n"
@@ -253,7 +263,7 @@ def simulate_poisson_distribution(num_kills, drop_probability, time_per_kill_min
         
     input_rarity_fraction, input_rarity_percentage = convert_rarity(drop_probability)
 
-    ax.set_xlabel(f"Number of drops \n {num_kills} tries with Rarity: {input_rarity_fraction} ({input_rarity_percentage}%) chance on each try; lambda (calculated): {lambda_val:0.4f}")
+    ax.set_xlabel(f"Number of drops \n in {num_kills} tries with Rarity: {input_rarity_fraction} ({input_rarity_percentage}%) chance on each try; lambda (calculated): {lambda_val:0.4f}")
     ax.set_ylabel('Probability * 100, Chance for exactly N drops [%]')
     ax.grid(True)
     ax.legend(loc='upper right')
@@ -263,14 +273,14 @@ def simulate_poisson_distribution(num_kills, drop_probability, time_per_kill_min
     luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.4f}%\n"
     
     if lambda_val > 1:
-        chance_of_exactly_n_drops = poisson.pmf(lambda_val, lambda_val)
-        luck_results += f"Chance to receive exactly {lambda_val:.0f} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
+        chance_of_exactly_n_drops = poisson.pmf(num_drops, lambda_val)
+        luck_results += f"Chance to receive exactly {num_drops} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
         
-        chance_of_at_least_n_drops = poisson.cdf(lambda_val, lambda_val)
-        luck_results += f"Chance to receive {lambda_val:.0f} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"    
+        chance_of_at_least_n_drops = poisson.cdf(num_drops, lambda_val)
+        luck_results += f"Chance to receive {num_drops} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"    
     
-        chance_more_than_n = 1 - poisson.cdf(lambda_val, lambda_val)
-        luck_results += f"Chance to receive more than {lambda_val:.0f} drop(s): {chance_more_than_n * 100:.4f}%\n"
+        chance_more_than_n = 1 - poisson.cdf(num_drops, lambda_val)
+        luck_results += f"Chance to receive more than {num_drops} drop(s): {chance_more_than_n * 100:.4f}%\n"
     
     chance_no_drops = np.exp(-lambda_val)
     luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.4f}%\n"
@@ -324,6 +334,9 @@ def simulate_drop_probability():
         drop_probability = float(chance_input_var.get())
         if not (0 < drop_probability < 1):
             raise ValueError("Drop probability must be between 0 and 1.")
+        num_drops = int(num_drops_entry.get())
+        if not (0 <= num_drops):
+            raise ValueError("Please input a valid number of drops.")
         time_per_kill_minutes = int(average_time_minutes.get())
         if not (0 <= time_per_kill_minutes < 1440):
             raise ValueError("Time in minutes needs to be between 0 and 1440 minutes (<24 hours).")
@@ -337,11 +350,7 @@ def simulate_drop_probability():
         error_label.pack()
         return
 
-    simulate_poisson_distribution(num_kills, drop_probability, time_per_kill_minutes, time_per_kill_seconds, show_pmf, pmf_opacity)
-
-def reset():
-    for child in loot_results_frame.winfo_children():
-        child.destroy()
+    simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_per_kill_minutes, time_per_kill_seconds, show_pmf, pmf_opacity)
 
 loot_button.configure(command=simulate_loot)
 simulate_x.configure(command=simulate_xloot)
@@ -354,7 +363,7 @@ reset_button = ttk.Button(window, text="Reset", command=reset)
 reset_button.pack()
 
 pmf_checkbox_var = tk.BooleanVar(value=False)  # Set to False for unchecked by default
-pmf_checkbox = ttk.Checkbutton(window, text="Show Probability Mass Function (PMF)", variable=pmf_checkbox_var, command=simulate_drop_probability)
+pmf_checkbox = ttk.Checkbutton(window, text="Show Probability Mass Function (Calculated)", variable=pmf_checkbox_var, command=simulate_drop_probability)
 pmf_checkbox.pack()
 
 # Add a slider for PMF opacity
