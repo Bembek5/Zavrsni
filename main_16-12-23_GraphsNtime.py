@@ -12,6 +12,7 @@ from scipy.stats import poisson
 from matplotlib.ticker import FuncFormatter
 import mplcursors
 
+
 with open('monsters-complete.json') as file:
     monsters_data = json.load(file)
     monsters_data = {monster['name']: monster for monster_id, monster in monsters_data.items() if monster['drops'] != []}
@@ -20,7 +21,7 @@ with open('monsters-complete.json') as file:
             if drop['rolls'] > 1:
                 drop['rarity'] = drop['rarity'] * drop['rolls']
                 drop['rolls'] = 1
-
+ 
 window = tk.Tk()
 window.title("Monster Loot Simulator")
 window_width = 800
@@ -173,9 +174,7 @@ def show_loot_items():
 def simulate_loot(times=1):
     global selected_monster_data
     selected_monster_name = selected_monster.get()
-    selected_monster_data = next(
-        (monster_data for monster_data in monsters_data.values() if monster_data['name'] == selected_monster_name),
-        None)
+    selected_monster_data = next((monster_data for monster_data in monsters_data.values() if monster_data['name'] == selected_monster_name),None)
     if selected_monster_data:
         loot = selected_monster_data['drops']
         for _ in range(times):
@@ -183,7 +182,6 @@ def simulate_loot(times=1):
             for item in loot:
                 if '-' in item['quantity']:
                     item_quantity = item_quantity = int(secrets.randbelow(int(item['quantity'].split('-')[1])) + int(item['quantity'].split('-')[0]))
-
                 else:
                     item_quantity = int(item['quantity'])
                 if item['rarity'] == 1:
@@ -208,21 +206,20 @@ def simulate_loot(times=1):
                         simulated_loot[item['id']]['quantity'] = item_quantity
         for child in loot_results_frame.winfo_children():
             child.destroy()
-
     show_loot_items()
-
+    
 def simulate_xloot():
-    simulate_loot(int(user_input_kills_var.get()))
-
+        num_kills = int(user_input_kills_var.get())
+        if not (0 < num_kills <= 1000000):
+            raise ValueError("Please simulate no more than 1 million kills.")
+        else:
+            simulate_loot(num_kills)
 def simulate_100xloot():
     simulate_loot(100)
-
 def simulate_1000xloot():
     simulate_loot(1000)
-
 def percentage_formatter(x, pos):
     return f"{x:.1%}"
-
 
 def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
     lambda_val = num_kills * drop_chance
@@ -249,8 +246,8 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
         pmf_values = poisson.pmf(np.arange(0, max(poisson_samples) + 1), lambda_val)
         ax.bar(np.arange(0, max(poisson_samples) + 1), pmf_values, alpha=pmf_opacity, color='red', edgecolor='black', label='Probability Mass Function')
 
-    ax.set_xlabel('Number of Drops')
-    ax.set_ylabel('Probability * 100, chance of obtaining exact number of drops')
+    ax.set_xlabel(f"Number of drops one can expect in {num_kills} tries.")
+    ax.set_ylabel('Probability * 100, Chance for exactly N drops [%]')
     ax.grid(True)
     ax.legend(loc='upper right')
     ax.yaxis.set_major_formatter(FuncFormatter(percentage_formatter))
@@ -263,7 +260,6 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
             days, remainder = divmod(remainder, 86400)  # 24 hours in a day
             hours, remainder = divmod(remainder, 3600)  # 60 minutes in an hour
             minutes, seconds = divmod(remainder, 60)
-
             time_format = ""
             if years:
                 time_format += f"{int(years)} {'year' if int(years) == 1 else 'years'}, "
@@ -277,7 +273,7 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
                 time_format += f"{int(minutes)} {'minute' if int(minutes) == 1 else 'minutes'}, "
             if seconds:
                 time_format += f"{seconds:.2f} seconds"
-
+                
             # Remove trailing comma and space
             time_format = time_format.rstrip(', ')
 
@@ -292,7 +288,7 @@ def simulate_poisson_distribution(num_kills, drop_chance, time_per_kill_minutes,
         
         chance_of_at_least_n_drops = poisson.cdf(lambda_val, lambda_val)
         luck_results += f"Chance to receive {lambda_val:.0f} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"    
-        
+    
         chance_more_than_n = 1 - poisson.cdf(lambda_val, lambda_val)
         luck_results += f"Chance to receive more than {lambda_val:.0f} drop(s): {chance_more_than_n * 100:.4f}%\n"
     
@@ -315,8 +311,8 @@ def simulate_drop_probability():
         if not (0 < drop_chance < 1):
             raise ValueError("Drop chance must be between 0 and 1.")
         time_per_kill_minutes = int(average_time_minutes.get())
-        if not (0 <= time_per_kill_minutes <= 1440):
-            raise ValueError("Time in minutes needs to be less than 1440 minutes (24 hours).")
+        if not (0 <= time_per_kill_minutes < 1440):
+            raise ValueError("Time in minutes needs to be between 0 and 1440 minutes (<24 hours).")
         time_per_kill_seconds = int(average_time_seconds.get())
         if not (0 <= time_per_kill_seconds < 60):
             raise ValueError("Time in seconds needs to be between 0 and 59 seconds.")
@@ -350,7 +346,7 @@ pmf_checkbox.pack()
 # Add a slider for PMF opacity
 pmf_opacity_label = ttk.Label(window, text="PMF Opacity:")
 pmf_opacity_label.pack()
-pmf_opacity_slider = ttk.Scale(window, from_=0, to=100, orient=tk.HORIZONTAL, length=200)
+pmf_opacity_slider = ttk.Scale(window, from_=10, to=100, orient=tk.HORIZONTAL, length=100)
 pmf_opacity_slider.set(21)  # Default opacity %
 pmf_opacity_slider.pack()
 
