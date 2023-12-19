@@ -127,9 +127,9 @@ def simulate_xloot():
     try:
         num_kills = int(user_input_kills_var.get())
         if not (0 < num_kills <= 100000):
-            raise ValueError("Please simulate loot for no more than 100 000 kills.")
+            raise ValueError("Please simulate loot for no more than 100 000 kills (events).")
     except:
-        error_label = tk.Label(loot_results_frame, text="Error, input a valid number of kills / tries to simulate loot.")
+        error_label = tk.Label(loot_results_frame, text="Error, input a valid number of kills (events) to simulate loot.")
         error_label.pack()
     simulate_loot(num_kills)
             
@@ -315,14 +315,14 @@ simulate_100x.pack()
 simulate_1000x = ttk.Button(window, text="Simulate 1000x Loot")
 simulate_1000x.pack()
 
+simulate_x = ttk.Button(window, text="Simulate X (Custom) Loot")
+simulate_x.pack()
+
 user_input_kills_label = ttk.Label(window, text="Number of kills / tries to simulate:")
 user_input_kills_label.pack()
 user_input_kills_var = tk.StringVar(value="1000")
 num_kills = ttk.Entry(window, textvariable=user_input_kills_var)
 num_kills.pack()
-
-simulate_x = ttk.Button(window, text="Simulate X (Custom) Loot")
-simulate_x.pack()
 
 num_drops_label = ttk.Label(window, text="Number of Drops / Occurances:")
 num_drops_label.pack()
