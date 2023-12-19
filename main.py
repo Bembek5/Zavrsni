@@ -38,9 +38,6 @@ def convert_rarity(rarity):
 def percentage_formatter(x, pos):
     return f"{x:.1%}"
 
-def reset():
-    for child in loot_results_frame.winfo_children():
-        child.destroy()
 
 def show_loot_items():
     for id, item in simulated_loot.items():
@@ -121,8 +118,9 @@ def simulate_loot(times=1):
                             simulated_loot[item['id']]['quantity'] += int(item_quantity)
                             continue
                         simulated_loot[item['id']] = copy(item)
-                        simulated_loot[item['id']]['quantity'] = item_quantity             
-        reset()
+                        simulated_loot[item['id']]['quantity'] = item_quantity
+        for child in loot_results_frame.winfo_children():
+            child.destroy()
     show_loot_items()
     
 def simulate_xloot():
@@ -143,9 +141,10 @@ def simulate_1000xloot():
 
 def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
     lambda_val = num_kills * drop_probability
+    
     # Simulate Poisson distribution
     poisson_samples = np.array([secrets.choice(np.random.poisson(lambda_val, num_drops)) for i in range(int(num_kills))])
-
+    
     # Display luck simulation results on the graph
     luck_results = f"Simulated kills: {num_kills}\n"
     luck_results += f"Expected drops (lambda): {lambda_val:.4f}\n"
@@ -226,7 +225,6 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
 
     plt.show()
 
-# Function to handle the "Simulate Drop Probability" button click
 def simulate_drop_probability():
     try:
         num_kills = int(user_input_kills_var.get())
@@ -288,7 +286,7 @@ open_graphs = []
 window = tk.Tk()
 window.title("Monster Loot Simulator")
 window_width = 800
-window_height = 600
+window_height = 800
 screen_width = window.winfo_screenwidth()
 screen_height = window.winfo_screenheight()
 x_position = (screen_width - window_width) // 2
@@ -319,7 +317,7 @@ simulate_1000x.pack()
 
 user_input_kills_label = ttk.Label(window, text="Number of kills / tries to simulate:")
 user_input_kills_label.pack()
-user_input_kills_var = tk.StringVar(value="0")
+user_input_kills_var = tk.StringVar(value="1000")
 num_kills = ttk.Entry(window, textvariable=user_input_kills_var)
 num_kills.pack()
 
@@ -328,20 +326,20 @@ simulate_x.pack()
 
 num_drops_label = ttk.Label(window, text="Number of Drops / Occurances:")
 num_drops_label.pack()
-num_drops = tk.StringVar(value="1")
+num_drops = tk.StringVar(value="10")
 num_drops_entry = ttk.Entry(window, textvariable=num_drops)
 num_drops_entry.pack()
 
 chance_input_label = ttk.Label(window, text="Drop probability (Decimal):")
 chance_input_label.pack()
-chance_input_var = tk.StringVar(value="0.0")
+chance_input_var = tk.StringVar(value="0.001")
 chance_input_var.trace_add("write", update_fraction_field)
 drop_probability_entry = ttk.Entry(window, textvariable=chance_input_var)
 drop_probability_entry.pack()
 
 chance_fraction_label = ttk.Label(window, text="Drop probability (Fraction):")
 chance_fraction_label.pack()
-chance_fraction_var = tk.StringVar()
+chance_fraction_var = tk.StringVar(value="1/10000")
 drop_fraction_entry = ttk.Entry(window, textvariable=chance_fraction_var, state=tk.DISABLED)
 drop_fraction_entry.pack()
 
@@ -362,6 +360,19 @@ time_per_kill_seconds.pack()
 luck_label = tk.Label(window, text="", font=("TkDefaultFont", 8, "italic"))
 luck_label.pack()
 
+simulate_button = ttk.Button(window, text="Graph Drop Probability", command=simulate_drop_probability)
+simulate_button.pack()
+
+pmf_checkbox_var = tk.BooleanVar(value=False)
+pmf_checkbox = ttk.Checkbutton(window, text="Show Probability Mass Function (Calculated)", variable=pmf_checkbox_var, command=simulate_drop_probability)
+pmf_checkbox.pack()
+
+pmf_opacity_label = ttk.Label(window, text="PMF Opacity:")
+pmf_opacity_label.pack()
+pmf_opacity_slider = ttk.Scale(window, from_=0, to=100, orient=tk.HORIZONTAL, length=200)
+pmf_opacity_slider.set(21)
+pmf_opacity_slider.pack()
+
 loot_results_label = ttk.Label(window, text="Loot Results:")
 loot_results_label.pack()
 
@@ -379,26 +390,11 @@ loot_canvas.create_window((0,0) , window=loot_results_frame, anchor=tk.NW)
 loot_results_frame.bind("<Configure>", on_canvas_configure)
 loot_results_frame.bind_all("<MouseWheel>", on_mousewheel)
 
-simulated_loot = {}
-
 loot_button.configure(command=simulate_loot)
 simulate_x.configure(command=simulate_xloot)
 simulate_100x.configure(command=simulate_100xloot)
 simulate_1000x.configure(command=simulate_1000xloot)
-simulate_button = ttk.Button(window, text="Simulate Drop Probability", command=simulate_drop_probability)
-simulate_button.pack()
 
-reset_button = ttk.Button(window, text="Reset", command=reset)
-reset_button.pack()
-
-pmf_checkbox_var = tk.BooleanVar(value=False)
-pmf_checkbox = ttk.Checkbutton(window, text="Show Probability Mass Function (Calculated)", variable=pmf_checkbox_var, command=simulate_drop_probability)
-pmf_checkbox.pack()
-
-pmf_opacity_label = ttk.Label(window, text="PMF Opacity:")
-pmf_opacity_label.pack()
-pmf_opacity_slider = ttk.Scale(window, from_=0, to=100, orient=tk.HORIZONTAL, length=200)
-pmf_opacity_slider.set(21)
-pmf_opacity_slider.pack()
+simulated_loot = {}
 
 window.mainloop()
