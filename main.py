@@ -24,116 +24,23 @@ try:
 except:
     print("Could not find monsters-complete.json")
 
-window = tk.Tk()
-window.title("Monster Loot Simulator")
-window_width = 600
-window_height = 700
-screen_width = window.winfo_screenwidth()
-screen_height = window.winfo_screenheight()
-x_position = (screen_width - window_width) // 2
-y_position = (screen_height - window_height) // 2
-window.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
-
-selected_monster = tk.StringVar()
-selected_monster.set("Select a monster")
-monster_dropdown = ttk.Combobox(window, textvariable=selected_monster, state="readonly")
-monster_dropdown['values'] = list(set([monster_data['name'] for monster_data in monsters_data.values()]))
-monster_dropdown.pack()
-
-search_var = tk.StringVar()
-search_var.set("Search...")
-search_entry = ttk.Entry(window, textvariable=search_var)
-search_entry.pack()
-
 def search_monster(event=None):
     search_query = search_var.get().lower()
     filtered_monsters = [monster_data['name'] for monster_data in monsters_data.values() if
                          re.search(search_query, monster_data['name'], re.IGNORECASE)]
     monster_dropdown['values'] = filtered_monsters
 
-search_entry.bind("<KeyRelease>", search_monster)
-
-loot_button = ttk.Button(window, text="Simulate  1x     Loot")
-loot_button.pack()
-
-simulate_100x = ttk.Button(window, text="Simulate 100x  Loot")
-simulate_100x.pack()
-
-simulate_1000x = ttk.Button(window, text="Simulate 1000x Loot")
-simulate_1000x.pack()
-
-user_input_kills_label = ttk.Label(window, text="Number of kills / tries to simulate:")
-user_input_kills_label.pack()
-user_input_kills_var = tk.StringVar(value="1250")
-num_kills = ttk.Entry(window, textvariable=user_input_kills_var)
-num_kills.pack()
-
-simulate_x = ttk.Button(window, text="Simulate X (Custom) Loot")
-simulate_x.pack()
-
-num_drops_label = ttk.Label(window, text="Number of Drops / Occurances:")
-num_drops_label.pack()
-num_drops = tk.StringVar(value="10")
-num_drops_entry = ttk.Entry(window, textvariable=num_drops)
-num_drops_entry.pack()
-
-chance_input_label = ttk.Label(window, text="Drop probability (Decimal):")
-chance_input_label.pack()
-chance_input_var = tk.StringVar(value="0.008")
-drop_probability_entry = ttk.Entry(window, textvariable=chance_input_var)
-drop_probability_entry.pack()
-
-time_per_kill_minutes_label = ttk.Label(window, text="Average Time per kill / roll (minutes):")
-time_per_kill_minutes_label.pack()
-
-average_time_minutes = tk.StringVar(value="1")
-time_per_kill_minutes = ttk.Entry(window, textvariable=average_time_minutes)
-time_per_kill_minutes.pack()
-
-time_per_kill_seconds_label = ttk.Label(window, text="Average Time per kill / roll (seconds):")
-time_per_kill_seconds_label.pack()
-
-average_time_seconds = tk.StringVar(value="30")
-time_per_kill_seconds = ttk.Entry(window, textvariable=average_time_seconds)
-time_per_kill_seconds.pack()
-
-luck_label = tk.Label(window, text="", font=("TkDefaultFont", 8, "italic"))
-luck_label.pack()
-
-loot_results_label = ttk.Label(window, text="Loot Results:")
-loot_results_label.pack()
-
-loot_canvas = tk.Canvas(window)
-loot_canvas.pack(fill=tk.BOTH, expand=True)
-
-loot_results_frame = tk.Frame(loot_canvas)
-loot_results_frame.pack(fill=tk.BOTH, expand=True)
-
-loot_scrollbar = tk.Scrollbar(loot_canvas, orient=tk.VERTICAL, command=loot_canvas.yview)
-loot_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-loot_canvas.configure(yscrollcommand=loot_scrollbar.set)
-loot_canvas.create_window((8, 6), window=loot_results_frame, anchor=tk.NW)
-
-def on_canvas_configure(event):
-    loot_canvas.configure(scrollregion=loot_canvas.bbox("all"))
-
-loot_results_frame.bind("<Configure>", on_canvas_configure)
-
-def on_mousewheel(event):
-    loot_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-loot_results_frame.bind_all("<MouseWheel>", on_mousewheel)
-
 def convert_rarity(rarity):
     fraction = Fraction(rarity).limit_denominator(1000)
     percentage = rarity * 100
     return fraction, percentage
 
+def percentage_formatter(x, pos):
+    return f"{x:.1%}"
+
 def reset():
     for child in loot_results_frame.winfo_children():
         child.destroy()
-
-simulated_loot = {}
 
 def show_loot_items():
     for id, item in simulated_loot.items():
@@ -166,10 +73,10 @@ def show_loot_items():
             simulated_loot[id]['highalch'] = 0 if data['highalch'] in [None, '', ' '] else data['highalch']
 
     try:
-        most_drops_item = max(simulated_loot, key=lambda item: simulated_loot[item].get('highalch', 0))
-        most_drops_item = simulated_loot[most_drops_item]
+        most_valueable_item = max(simulated_loot, key=lambda item: simulated_loot[item].get('highalch', 0))
+        most_valueable_item = simulated_loot[most_valueable_item]
     except ValueError:
-        most_drops_item = None
+        most_valueable_item = None
         error_label = tk.Label(loot_results_frame, text="Please select a monster.")
         error_label.pack()
 
@@ -177,8 +84,8 @@ def show_loot_items():
         if isinstance(child, tk.Frame):
             child_name_label = child.winfo_children()[1]
             child_quantity_label = child.winfo_children()[2]
-            if child_name_label.cget("text") == most_drops_item['name'] and \
-                    child_quantity_label.cget("text") == f"Quantity: {most_drops_item.get('quantity', 0)}":
+            if child_name_label.cget("text") == most_valueable_item['name'] and \
+                    child_quantity_label.cget("text") == f"Quantity: {most_valueable_item.get('quantity', 0)}":
                 child_name_label.config(font=("TkDefaultFont", 12, "bold"))
                 child_quantity_label.config(font=("TkDefaultFont", 12, "bold"))
                 break
@@ -204,7 +111,6 @@ def simulate_loot(times=1):
                     simulated_loot[item['id']]['quantity'] = item_quantity
                     continue
                 else:
-                    from fractions import Fraction
                     decimal_value = item['rarity']
                     fraction = Fraction(decimal_value)
                     drop_rate = Fraction(1, round((fraction.denominator / fraction.numerator)))
@@ -215,27 +121,25 @@ def simulate_loot(times=1):
                             simulated_loot[item['id']]['quantity'] += int(item_quantity)
                             continue
                         simulated_loot[item['id']] = copy(item)
-                        simulated_loot[item['id']]['quantity'] = item_quantity
+                        simulated_loot[item['id']]['quantity'] = item_quantity             
         reset()
     show_loot_items()
     
 def simulate_xloot():
+    try:
         num_kills = int(user_input_kills_var.get())
-        if not (0 < num_kills <= 1000000):
-            raise ValueError("Please simulate no more than 1 million kills.")
-        else:
-            simulate_loot(num_kills)
+        if not (0 < num_kills <= 100000):
+            raise ValueError("Please simulate loot for no more than 100 000 kills.")
+    except:
+        error_label = tk.Label(loot_results_frame, text="Error, input a valid number of kills / tries to simulate loot.")
+        error_label.pack()
+    simulate_loot(num_kills)
             
 def simulate_100xloot():
     simulate_loot(100)
     
 def simulate_1000xloot():
     simulate_loot(1000)
-
-open_graphs = []
-    
-def percentage_formatter(x, pos):
-    return f"{x:.1%}"
 
 def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
     lambda_val = num_kills * drop_probability
@@ -255,10 +159,9 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
     poisson_data = np.histogram(poisson_samples, bins=np.arange(0, max(poisson_samples) + 1, 1), density=True)
     cumulative_percentage = np.cumsum(poisson_data[0]) * np.diff(poisson_data[1])
     ax.bar(poisson_data[1][:-1], poisson_data[0], alpha=0.7, color='skyblue', edgecolor='black', label='Poisson Simulation')
-    mplcursors.cursor(hover=True).connect("add", lambda sel: sel.annotation.set_text(f"{sel.index} or fewer drops: {cumulative_percentage[int(sel.index)] * 100:.1f}%"))
+    mplcursors.cursor(hover=False).connect("add", lambda sel: sel.annotation.set_text(f"{sel.index} or fewer drops: {cumulative_percentage[int(sel.index)] * 100:.1f}%"))
 
     if show_pmf:
-        # Plot PMF as individual bars with opacity
         pmf_values = poisson.pmf(np.arange(0, max(poisson_samples) + 1), lambda_val)
         ax.bar(np.arange(0, max(poisson_samples) + 1), pmf_values, alpha=pmf_opacity, color='red', edgecolor='black', label='Probability Mass Function (calculated)')
         
@@ -317,7 +220,6 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
     
     open_graphs.append(fig)
 
-    # Close the oldest figure if the limit is reached
     if len(open_graphs) > 5:
         oldest_figure = open_graphs.pop(0)
         plt.close(oldest_figure)
@@ -329,27 +231,155 @@ def simulate_drop_probability():
     try:
         num_kills = int(user_input_kills_var.get())
         if not (0 < num_kills <= 1000000):
-            raise ValueError("Please simulate no more than 1 million kills.")
+            raise ValueError("Please simulate between 1 and 1 million kills.")
+        
         drop_probability = float(chance_input_var.get())
         if not (0 < drop_probability < 1):
-            raise ValueError("Drop probability must be between 0 and 1.")
+            raise ValueError("Drop probability must be between 0 (impossible) and 1 (guaranteed).")
+
         num_drops = int(num_drops_entry.get())
         if not (0 <= num_drops):
             raise ValueError("Please input a valid number of drops.")
+
         time_per_kill_minutes = int(average_time_minutes.get())
         if not (0 <= time_per_kill_minutes < 1440):
-            raise ValueError("Time in minutes needs to be between 0 and 1440 minutes (<24 hours).")
+            raise ValueError("Time in minutes needs to be between 0 and 1439 minutes (<24 hours).")
+        
         time_per_kill_seconds = int(average_time_seconds.get())
         if not (0 <= time_per_kill_seconds < 60):
             raise ValueError("Time in seconds needs to be between 0 and 59 seconds.")
+
         show_pmf = pmf_checkbox_var.get()
         pmf_opacity = pmf_opacity_slider.get() / 100.0
-    except ValueError as e:
-        error_label = tk.Label(loot_results_frame, text=str(e))
+
+    except:
+        error_label = tk.Label(loot_results_frame, text=str("Please check the given parameters."))
         error_label.pack()
         return
-
+    
     simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_per_kill_minutes, time_per_kill_seconds, show_pmf, pmf_opacity)
+
+def on_canvas_configure(event):
+    loot_canvas.configure(scrollregion=loot_canvas.bbox("all"))
+
+def on_mousewheel(event):
+    loot_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+    
+def update_fraction_field(*args):
+    try:
+        drop_probability = float(chance_input_var.get())
+        drop_fraction_entry.config(state=tk.NORMAL)
+        drop_fraction_entry.delete(0, tk.END)
+        drop_fraction_entry.insert(0, str(Fraction(drop_probability).limit_denominator(1000000)))
+        drop_fraction_entry.config(state=tk.DISABLED)
+
+    except ValueError:
+        drop_fraction_entry.config(state=tk.NORMAL)
+        drop_fraction_entry.delete(0, tk.END)
+        drop_fraction_entry.config(state=tk.DISABLED)
+
+def update_decimal_field(*args):
+    drop_probability_entry.config(state=tk.NORMAL)
+    drop_fraction_entry.config(state=tk.NORMAL)
+    drop_fraction_entry.delete(0, tk.END)
+
+open_graphs = []
+
+window = tk.Tk()
+window.title("Monster Loot Simulator")
+window_width = 800
+window_height = 600
+screen_width = window.winfo_screenwidth()
+screen_height = window.winfo_screenheight()
+x_position = (screen_width - window_width) // 2
+y_position = (screen_height - window_height) // 2
+window.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
+
+selected_monster = tk.StringVar()
+selected_monster.set("Select a monster")
+monster_dropdown = ttk.Combobox(window, textvariable=selected_monster, state="readonly")
+monster_dropdown['values'] = list(set([monster_data['name'] for monster_data in monsters_data.values()]))
+monster_dropdown.pack()
+
+search_var = tk.StringVar()
+search_var.set("Search...")
+search_entry = ttk.Entry(window, textvariable=search_var)
+search_entry.pack()
+
+search_entry.bind("<KeyRelease>", search_monster)
+
+loot_button = ttk.Button(window, text="Simulate  1x     Loot")
+loot_button.pack()
+
+simulate_100x = ttk.Button(window, text="Simulate 100x  Loot")
+simulate_100x.pack()
+
+simulate_1000x = ttk.Button(window, text="Simulate 1000x Loot")
+simulate_1000x.pack()
+
+user_input_kills_label = ttk.Label(window, text="Number of kills / tries to simulate:")
+user_input_kills_label.pack()
+user_input_kills_var = tk.StringVar(value="0")
+num_kills = ttk.Entry(window, textvariable=user_input_kills_var)
+num_kills.pack()
+
+simulate_x = ttk.Button(window, text="Simulate X (Custom) Loot")
+simulate_x.pack()
+
+num_drops_label = ttk.Label(window, text="Number of Drops / Occurances:")
+num_drops_label.pack()
+num_drops = tk.StringVar(value="1")
+num_drops_entry = ttk.Entry(window, textvariable=num_drops)
+num_drops_entry.pack()
+
+chance_input_label = ttk.Label(window, text="Drop probability (Decimal):")
+chance_input_label.pack()
+chance_input_var = tk.StringVar(value="0.0")
+chance_input_var.trace_add("write", update_fraction_field)
+drop_probability_entry = ttk.Entry(window, textvariable=chance_input_var)
+drop_probability_entry.pack()
+
+chance_fraction_label = ttk.Label(window, text="Drop probability (Fraction):")
+chance_fraction_label.pack()
+chance_fraction_var = tk.StringVar()
+drop_fraction_entry = ttk.Entry(window, textvariable=chance_fraction_var, state=tk.DISABLED)
+drop_fraction_entry.pack()
+
+time_per_kill_minutes_label = ttk.Label(window, text="Average Time per kill / roll (minutes):")
+time_per_kill_minutes_label.pack()
+
+average_time_minutes = tk.StringVar(value="1")
+time_per_kill_minutes = ttk.Entry(window, textvariable=average_time_minutes)
+time_per_kill_minutes.pack()
+
+time_per_kill_seconds_label = ttk.Label(window, text="Average Time per kill / roll (seconds):")
+time_per_kill_seconds_label.pack()
+
+average_time_seconds = tk.StringVar(value="30")
+time_per_kill_seconds = ttk.Entry(window, textvariable=average_time_seconds)
+time_per_kill_seconds.pack()
+
+luck_label = tk.Label(window, text="", font=("TkDefaultFont", 8, "italic"))
+luck_label.pack()
+
+loot_results_label = ttk.Label(window, text="Loot Results:")
+loot_results_label.pack()
+
+loot_canvas = tk.Canvas(window)
+loot_canvas.pack(fill=tk.BOTH, expand=True)
+
+loot_results_frame = tk.Frame(loot_canvas)
+loot_results_frame.pack(side=None,fill=tk.BOTH, expand=True)
+
+loot_scrollbar = tk.Scrollbar(loot_canvas, orient=tk.VERTICAL, command=loot_canvas.yview)
+loot_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+loot_canvas.configure(yscrollcommand=loot_scrollbar.set)
+loot_canvas.create_window((0,0) , window=loot_results_frame, anchor=tk.NW)
+
+loot_results_frame.bind("<Configure>", on_canvas_configure)
+loot_results_frame.bind_all("<MouseWheel>", on_mousewheel)
+
+simulated_loot = {}
 
 loot_button.configure(command=simulate_loot)
 simulate_x.configure(command=simulate_xloot)
@@ -361,16 +391,14 @@ simulate_button.pack()
 reset_button = ttk.Button(window, text="Reset", command=reset)
 reset_button.pack()
 
-# pmf calculated graph
-pmf_checkbox_var = tk.BooleanVar(value=True)
+pmf_checkbox_var = tk.BooleanVar(value=False)
 pmf_checkbox = ttk.Checkbutton(window, text="Show Probability Mass Function (Calculated)", variable=pmf_checkbox_var, command=simulate_drop_probability)
 pmf_checkbox.pack()
 
-# Add a slider for PMF opacity
 pmf_opacity_label = ttk.Label(window, text="PMF Opacity:")
 pmf_opacity_label.pack()
 pmf_opacity_slider = ttk.Scale(window, from_=0, to=100, orient=tk.HORIZONTAL, length=200)
-pmf_opacity_slider.set(21)  # Default opacity %
+pmf_opacity_slider.set(21)
 pmf_opacity_slider.pack()
 
 window.mainloop()
