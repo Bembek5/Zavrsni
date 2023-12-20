@@ -31,7 +31,7 @@ def search_monster(event=None):
     monster_dropdown['values'] = filtered_monsters
 
 def convert_rarity(rarity):
-    fraction = Fraction(rarity).limit_denominator(1000)
+    fraction = Fraction(rarity).limit_denominator(10000)
     percentage = rarity * 100
     return fraction, percentage
 
@@ -90,7 +90,7 @@ def show_loot_items():
 def simulate_loot(times=1):
     global selected_monster_data
     selected_monster_name = selected_monster.get()
-    selected_monster_data = next((monster_data for monster_data in monsters_data.values() if monster_data['name'] == selected_monster_name),None)
+    selected_monster_data = next((monster_data for monster_data in monsters_data.values() if monster_data['name'] == selected_monster_name), None)
     if selected_monster_data:
         loot = selected_monster_data['drops']
         for i in range(times):
@@ -127,9 +127,9 @@ def simulate_xloot():
     try:
         num_kills = int(user_input_kills_var.get())
         if not (0 < num_kills <= 100000):
-            raise ValueError("Please simulate loot for no more than 100 000 kills (events).")
+            raise ValueError("Please simulate loot for no more than 100 000 kills (events), you can graph up to 1 million.")
     except:
-        error_label = tk.Label(loot_results_frame, text="Error, input a valid number of kills (events) to simulate loot.")
+        error_label = tk.Label(loot_results_frame, text="Input a valid number of kills (events) to simulate loot.")
         error_label.pack()
     simulate_loot(num_kills)
             
@@ -190,7 +190,6 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
     ax.legend(loc='best', frameon=False)
     ax.yaxis.set_major_formatter(FuncFormatter(percentage_formatter))
 
-    luck_label.config(text=luck_results)
     
     open_graphs.append(fig)
 
@@ -220,11 +219,9 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
             if seconds:
                 time_format += f"{seconds:.2f} seconds"
                 
-            # Remove trailing comma and space
             time_format = time_format.rstrip(', ')
-
-            luck_results += f"Time needed for {num_kills} tries: {time_format}\n"
-
+            luck_results += f"Time for {num_kills} tries: {time_format}\n"  
+        luck_label.config(text=luck_results)
     plt.show()
 
 def simulate_drop_probability():
@@ -287,7 +284,7 @@ open_graphs = []
 
 window = tk.Tk()
 window.title("Monster Loot Simulator")
-window_width = 300
+window_width = 320
 window_height = 700
 screen_width = window.winfo_screenwidth()
 screen_height = window.winfo_screenheight()
