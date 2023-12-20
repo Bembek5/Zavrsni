@@ -83,8 +83,8 @@ def show_loot_items():
             child_quantity_label = child.winfo_children()[2]
             if child_name_label.cget("text") == most_valueable_item['name'] and \
                     child_quantity_label.cget("text") == f"Quantity: {most_valueable_item.get('quantity', 0)}":
-                child_name_label.config(font=("TkDefaultFont", 12, "bold"))
-                child_quantity_label.config(font=("TkDefaultFont", 12, "bold"))
+                child_name_label.config(font=("TkDefaultFont", 12, "bold"), fg="#a18b3f")
+                child_quantity_label.config(font=("TkDefaultFont", 12, "bold"), fg="#a18b3f")
                 break
 
 def simulate_loot(times=1):
@@ -139,39 +139,12 @@ def simulate_100xloot():
 def simulate_1000xloot():
     simulate_loot(1000)
 
-def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_per_kill_minutes, time_per_kill_seconds, show_pmf=True, pmf_opacity=0.21):
-    lambda_val = num_kills * drop_probability
-    
-    # Simulate Poisson distribution
-    poisson_samples = np.array([secrets.choice(np.random.poisson(lambda_val, num_drops)) for i in range(int(num_kills))])
-    
-    # Display luck simulation results on the graph
+def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_per_kill_minutes, time_per_kill_seconds, show_calculated_poisson=True, calculated_poisson_opacity=0.21):
+
     luck_results = f"Simulated kills: {num_kills}\n"
-    luck_results += f"Expected drops (lambda): {lambda_val:.4f}\n"
-    average_drops = np.mean(poisson_samples)
-    luck_results += f"Average drops (simulated): {average_drops:.4f}\n"
-
-    # Create subplot with bars for Poisson distribution
-    fig, ax = plt.subplots(figsize=(8, 6))
-
-    # Plot Poisson distribution
-    poisson_data = np.histogram(poisson_samples, bins=np.arange(0, max(poisson_samples) + 1, 1), density=True)
-    cumulative_percentage = np.cumsum(poisson_data[0]) * np.diff(poisson_data[1])
-    ax.bar(poisson_data[1][:-1], poisson_data[0], alpha=0.7, color='skyblue', edgecolor='black', label='Poisson Simulation')
-    mplcursors.cursor(hover=False).connect("add", lambda sel: sel.annotation.set_text(f"{sel.index} or fewer drops: {cumulative_percentage[int(sel.index)] * 100:.1f}%"))
-
-    if show_pmf:
-        pmf_values = poisson.pmf(np.arange(0, max(poisson_samples) + 1), lambda_val)
-        ax.bar(np.arange(0, max(poisson_samples) + 1), pmf_values, alpha=pmf_opacity, color='red', edgecolor='black', label='Probability Mass Function (calculated)')
-        
-    input_rarity_fraction, input_rarity_percentage = convert_rarity(drop_probability)
-
-    ax.set_xlabel(f"Number of drops \n in {num_kills} tries with Rarity: {input_rarity_fraction} ({input_rarity_percentage:.4f}%) chance on each try; lambda (calculated): {lambda_val:0.4f}")
-    ax.set_ylabel('Probability * 100, Chance for exactly N drops [%]')
-    ax.grid(True)
-    ax.legend(loc='best', frameon=False)
-    ax.yaxis.set_major_formatter(FuncFormatter(percentage_formatter))
     
+    lambda_val = num_kills * drop_probability
+
     if lambda_val > 1:
         chance_of_exactly_n_drops = poisson.pmf(num_drops, lambda_val)
         luck_results += f"Chance to receive exactly {num_drops} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
@@ -188,6 +161,43 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
     chance_no_drops = np.exp(-lambda_val)
     luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.4f}%\n"
     
+    luck_results += f"Expected drops (lambda): {lambda_val:.4f}\n"
+    
+    # Simulate Poisson distribution
+    poisson_samples = np.array([secrets.choice(np.random.poisson(lambda_val, num_drops)) for i in range(int(num_kills))])
+
+    # Create subplot with bars for Poisson distribution
+    fig, ax = plt.subplots(figsize=(8, 6))
+    
+    average_drops = np.mean(poisson_samples)
+    luck_results += f"Average drops (simulated): {average_drops:.4f}\n"
+
+    # Plot Poisson distribution
+    poisson_data = np.histogram(poisson_samples, bins=np.arange(0, max(poisson_samples) + 1, 1), density=True)
+    cumulative_percentage = np.cumsum(poisson_data[0]) * np.diff(poisson_data[1])
+    ax.bar(poisson_data[1][:-1], poisson_data[0], alpha=0.7, color='skyblue', edgecolor='black', label='Poisson Simulation')
+    mplcursors.cursor(hover=False).connect("add", lambda sel: sel.annotation.set_text(f"{sel.index} or fewer drops: {cumulative_percentage[int(sel.index)] * 100:.1f}%"))
+
+    if show_calculated_poisson:
+        calculated_poisson = poisson.pmf(np.arange(0, max(poisson_samples) + 1), lambda_val)
+        ax.bar(np.arange(0, max(poisson_samples) + 1), calculated_poisson, alpha=calculated_poisson_opacity, color='red', edgecolor='black', label='Probability Mass Function (calculated)')  
+    
+    input_rarity_fraction, input_rarity_percentage = convert_rarity(drop_probability)
+
+    ax.set_xlabel(f"Number of drops \n in {num_kills} tries with Rarity: {input_rarity_fraction} ({input_rarity_percentage:.4f}%) chance on each try; lambda (calculated): {lambda_val:0.4f}")
+    ax.set_ylabel('Probability * 100, Chance for exactly N drops [%]')
+    ax.grid(True)
+    ax.legend(loc='best', frameon=False)
+    ax.yaxis.set_major_formatter(FuncFormatter(percentage_formatter))
+
+    luck_label.config(text=luck_results)
+    
+    open_graphs.append(fig)
+
+    if len(open_graphs) > 5:
+        oldest_figure = open_graphs.pop(0)
+        plt.close(oldest_figure)
+
     if any(poisson_samples):
         time_to_finish = (float(time_per_kill_minutes) * 60 + float(time_per_kill_seconds)) * num_kills
         if time_to_finish is not None:
@@ -215,14 +225,6 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
 
             luck_results += f"Time needed for {num_kills} tries: {time_format}\n"
 
-    luck_label.config(text=luck_results)
-    
-    open_graphs.append(fig)
-
-    if len(open_graphs) > 5:
-        oldest_figure = open_graphs.pop(0)
-        plt.close(oldest_figure)
-
     plt.show()
 
 def simulate_drop_probability():
@@ -247,15 +249,15 @@ def simulate_drop_probability():
         if not (0 <= time_per_kill_seconds < 60):
             raise ValueError("Time in seconds needs to be between 0 and 59 seconds.")
 
-        show_pmf = pmf_checkbox_var.get()
-        pmf_opacity = pmf_opacity_slider.get() / 100.0
+        show_calculated_poisson = calculated_poisson_var.get()
+        calculated_poisson_opacity = calculated_poisson_opacity_slider.get() / 100.0
 
     except:
         error_label = tk.Label(loot_results_frame, text=str("Please check the given parameters."))
         error_label.pack()
         return
     
-    simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_per_kill_minutes, time_per_kill_seconds, show_pmf, pmf_opacity)
+    simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_per_kill_minutes, time_per_kill_seconds, show_calculated_poisson, calculated_poisson_opacity)
 
 def on_canvas_configure(event):
     loot_canvas.configure(scrollregion=loot_canvas.bbox("all"))
@@ -268,7 +270,7 @@ def update_fraction_field(*args):
         drop_probability = float(chance_input_var.get())
         drop_fraction_entry.config(state=tk.NORMAL)
         drop_fraction_entry.delete(0, tk.END)
-        drop_fraction_entry.insert(0, str(Fraction(drop_probability).limit_denominator(1000000)))
+        drop_fraction_entry.insert(0, str(Fraction(drop_probability).limit_denominator(10000)))
         drop_fraction_entry.config(state=tk.DISABLED)
 
     except ValueError:
@@ -285,8 +287,8 @@ open_graphs = []
 
 window = tk.Tk()
 window.title("Monster Loot Simulator")
-window_width = 800
-window_height = 800
+window_width = 300
+window_height = 700
 screen_width = window.winfo_screenwidth()
 screen_height = window.winfo_screenheight()
 x_position = (screen_width - window_width) // 2
@@ -296,7 +298,7 @@ window.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
 selected_monster = tk.StringVar()
 selected_monster.set("Select a monster")
 monster_dropdown = ttk.Combobox(window, textvariable=selected_monster, state="readonly")
-monster_dropdown['values'] = list(set([monster_data['name'] for monster_data in monsters_data.values()]))
+monster_dropdown['values'] = sorted(list(set([monster_data['name'] for monster_data in monsters_data.values()])))
 monster_dropdown.pack()
 
 search_var = tk.StringVar()
@@ -320,7 +322,7 @@ simulate_x.pack()
 
 user_input_kills_label = ttk.Label(window, text="Number of kills / tries to simulate:")
 user_input_kills_label.pack()
-user_input_kills_var = tk.StringVar(value="1000")
+user_input_kills_var = tk.StringVar(value="10000")
 num_kills = ttk.Entry(window, textvariable=user_input_kills_var)
 num_kills.pack()
 
@@ -363,15 +365,15 @@ luck_label.pack()
 simulate_button = ttk.Button(window, text="Graph Drop Probability", command=simulate_drop_probability)
 simulate_button.pack()
 
-pmf_checkbox_var = tk.BooleanVar(value=False)
-pmf_checkbox = ttk.Checkbutton(window, text="Show Probability Mass Function (Calculated)", variable=pmf_checkbox_var, command=simulate_drop_probability)
-pmf_checkbox.pack()
+calculated_poisson_var = tk.BooleanVar(value=False)
+calculated_poisson = ttk.Checkbutton(window, text="Show Probability Mass Function (Calculated)", variable=calculated_poisson_var, command=simulate_drop_probability)
+calculated_poisson.pack()
 
-pmf_opacity_label = ttk.Label(window, text="PMF Opacity:")
-pmf_opacity_label.pack()
-pmf_opacity_slider = ttk.Scale(window, from_=0, to=100, orient=tk.HORIZONTAL, length=200)
-pmf_opacity_slider.set(21)
-pmf_opacity_slider.pack()
+calculated_poisson_opacity_label = ttk.Label(window, text="Calculation Opacity:")
+calculated_poisson_opacity_label.pack()
+calculated_poisson_opacity_slider = ttk.Scale(window, from_=0, to=100, orient=tk.HORIZONTAL, length=200)
+calculated_poisson_opacity_slider.set(21)
+calculated_poisson_opacity_slider.pack()
 
 loot_results_label = ttk.Label(window, text="Loot Results:")
 loot_results_label.pack()
