@@ -70,10 +70,10 @@ def show_loot_items():
             simulated_loot[id]['highalch'] = 0 if data['highalch'] in [None, '', ' '] else data['highalch']
 
     try:
-        most_valueable_item = max(simulated_loot, key=lambda item: simulated_loot[item].get('highalch', 0))
-        most_valueable_item = simulated_loot[most_valueable_item]
+        most_valuable_item = max(simulated_loot, key=lambda item: simulated_loot[item].get('highalch', 0))
+        most_valuable_item = simulated_loot[most_valuable_item]
     except ValueError:
-        most_valueable_item = None
+        most_valuable_item = None
         error_label = tk.Label(loot_results_frame, text="Please select a monster.")
         error_label.pack()
 
@@ -81,8 +81,8 @@ def show_loot_items():
         if isinstance(child, tk.Frame):
             child_name_label = child.winfo_children()[1]
             child_quantity_label = child.winfo_children()[2]
-            if child_name_label.cget("text") == most_valueable_item['name'] and \
-                    child_quantity_label.cget("text") == f"Quantity: {most_valueable_item.get('quantity', 0)}":
+            if child_name_label.cget("text") == most_valuable_item['name'] and \
+                    child_quantity_label.cget("text") == f"Quantity: {most_valuable_item.get('quantity', 0)}":
                 child_name_label.config(font=("TkDefaultFont", 12, "bold"), fg="#a18b3f")
                 child_quantity_label.config(font=("TkDefaultFont", 12, "bold"), fg="#a18b3f")
                 break
@@ -138,6 +138,56 @@ def simulate_100xloot():
     
 def simulate_1000xloot():
     simulate_loot(1000)
+    
+def calculate_luck_results():
+    try:
+        num_kills = int(user_input_kills_var.get())
+        if not (0 < num_kills <= 1000000):
+            raise ValueError("Please simulate between 1 and 1 million kills.")
+        
+        drop_probability = float(chance_input_var.get())
+        if not (0 < drop_probability < 1):
+            raise ValueError("Drop probability must be between 0 (impossible) and 1 (guaranteed).")
+
+        num_drops = int(num_drops_entry.get())
+        if not (0 <= num_drops):
+            raise ValueError("Please input a valid number of drops.")
+
+        time_per_kill_minutes = int(average_time_minutes.get())
+        if not (0 <= time_per_kill_minutes < 1440):
+            raise ValueError("Time in minutes needs to be between 0 and 1439 minutes (<24 hours).")
+        
+        time_per_kill_seconds = int(average_time_seconds.get())
+        if not (0 <= time_per_kill_seconds < 60):
+            raise ValueError("Time in seconds needs to be between 0 and 59 seconds.")
+
+        lambda_val = num_kills * drop_probability
+
+        luck_results = f"Simulated kills / tries: {num_kills}\n"
+        
+        if lambda_val > 1:
+            chance_of_exactly_n_drops = poisson.pmf(num_drops, lambda_val)
+            luck_results += f"Chance to receive exactly {num_drops} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
+            
+            chance_of_at_least_n_drops = poisson.cdf(num_drops, lambda_val)
+            luck_results += f"Chance to receive {num_drops} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"    
+        
+            chance_more_than_n = poisson.sf(num_drops, lambda_val)
+            luck_results += f"Chance to receive more than {num_drops} drop(s): {chance_more_than_n * 100:.4f}%\n"
+        
+        chance_of_at_least_one_drop = 1 - np.exp(-lambda_val)
+        luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.4f}%\n"
+        
+        chance_no_drops = np.exp(-lambda_val)
+        luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.4f}%\n"
+        
+        luck_results += f"Expected drops (lambda): {lambda_val:.4f}\n"
+
+        luck_label.config(text=luck_results)
+
+    except:
+        error_label = tk.Label(loot_results_frame, text="Please check input and try again.")
+        error_label.pack()
 
 def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_per_kill_minutes, time_per_kill_seconds, show_calculated_poisson=True, calculated_poisson_opacity=0.21):
 
@@ -146,23 +196,55 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
     lambda_val = num_kills * drop_probability
 
     if lambda_val > 1:
-        chance_of_exactly_n_drops = poisson.pmf(num_drops, lambda_val)
-        luck_results += f"Chance to receive exactly {num_drops} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
-        
-        chance_of_at_least_n_drops = poisson.cdf(num_drops, lambda_val)
-        luck_results += f"Chance to receive {num_drops} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"    
-    
-        chance_more_than_n = poisson.sf(num_drops, lambda_val)
-        luck_results += f"Chance to receive more than {num_drops} drop(s): {chance_more_than_n * 100:.4f}%\n"
-    
-    chance_of_at_least_one_drop = 1 - np.exp(-lambda_val)
-    luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.4f}%\n"
-    
-    chance_no_drops = np.exp(-lambda_val)
-    luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.4f}%\n"
-    
-    luck_results += f"Expected drops (lambda): {lambda_val:.4f}\n"
-    
+        try:
+            num_kills = int(user_input_kills_var.get())
+            if not (0 < num_kills <= 1000000):
+                raise ValueError("Please simulate between 1 and 1 million kills.")
+            
+            drop_probability = float(chance_input_var.get())
+            if not (0 < drop_probability < 1):
+                raise ValueError("Drop probability must be between 0 (impossible) and 1 (guaranteed).")
+
+            num_drops = int(num_drops_entry.get())
+            if not (0 <= num_drops):
+                raise ValueError("Please input a valid number of drops.")
+
+            time_per_kill_minutes = int(average_time_minutes.get())
+            if not (0 <= time_per_kill_minutes < 1440):
+                raise ValueError("Time in minutes needs to be between 0 and 1439 minutes (<24 hours).")
+            
+            time_per_kill_seconds = int(average_time_seconds.get())
+            if not (0 <= time_per_kill_seconds < 60):
+                raise ValueError("Time in seconds needs to be between 0 and 59 seconds.")
+
+            lambda_val = num_kills * drop_probability
+
+            luck_results = f"Simulated kills: {num_kills}\n"
+            
+            if lambda_val > 1:
+                chance_of_exactly_n_drops = poisson.pmf(num_drops, lambda_val)
+                luck_results += f"Chance to receive exactly {num_drops} drop(s): {chance_of_exactly_n_drops * 100:.4f}%\n"
+                
+                chance_of_at_least_n_drops = poisson.cdf(num_drops, lambda_val)
+                luck_results += f"Chance to receive {num_drops} drop(s) or fewer: {chance_of_at_least_n_drops * 100:.4f}%\n"    
+            
+                chance_more_than_n = poisson.sf(num_drops, lambda_val)
+                luck_results += f"Chance to receive more than {num_drops} drop(s): {chance_more_than_n * 100:.4f}%\n"
+            
+            chance_of_at_least_one_drop = 1 - np.exp(-lambda_val)
+            luck_results += f"Chance to receive at least one drop: {chance_of_at_least_one_drop * 100:.4f}%\n"
+            
+            chance_no_drops = np.exp(-lambda_val)
+            luck_results += f"Chance to not receive any drops: {chance_no_drops * 100:.4f}%\n"
+            
+            luck_results += f"Expected drops (lambda): {lambda_val:.4f}\n"
+            
+            # Prikaz rezultata u Tkinter prozoru
+            luck_label.config(text=luck_results)
+
+        except:
+            error_label = tk.Label(loot_results_frame, text="Please check input and try again.")
+            error_label.pack()    
     # Simulate Poisson distribution
     poisson_samples = np.array([secrets.choice(np.random.poisson(lambda_val, num_drops)) for i in range(int(num_kills))])
 
@@ -190,7 +272,6 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
     ax.legend(loc='best', frameon=False)
     ax.yaxis.set_major_formatter(FuncFormatter(percentage_formatter))
 
-    
     open_graphs.append(fig)
 
     if len(open_graphs) > 5:
@@ -199,7 +280,7 @@ def simulate_poisson_distribution(num_kills, drop_probability, num_drops, time_p
 
     if any(poisson_samples):
         time_to_finish = (float(time_per_kill_minutes) * 60 + float(time_per_kill_seconds)) * num_kills
-        if time_to_finish is not None:
+        if time_to_finish is not None and time_to_finish != 0:
             years, remainder = divmod(time_to_finish, 31556952)  # 365.25 days in a year on average
             months, remainder = divmod(remainder, 2629746)  # 30.44 days in a month on average
             days, remainder = divmod(remainder, 86400)  # 24 hours in a day
@@ -247,6 +328,7 @@ def simulate_drop_probability():
             raise ValueError("Time in seconds needs to be between 0 and 59 seconds.")
 
         show_calculated_poisson = calculated_poisson_var.get()
+        
         calculated_poisson_opacity = calculated_poisson_opacity_slider.get() / 100.0
 
     except:
@@ -267,7 +349,7 @@ def update_fraction_field(*args):
         drop_probability = float(chance_input_var.get())
         drop_fraction_entry.config(state=tk.NORMAL)
         drop_fraction_entry.delete(0, tk.END)
-        drop_fraction_entry.insert(0, str(Fraction(drop_probability).limit_denominator(10000)))
+        drop_fraction_entry.insert(0, str(Fraction(drop_probability).limit_denominator(1000)))
         drop_fraction_entry.config(state=tk.DISABLED)
 
     except ValueError:
@@ -358,6 +440,9 @@ time_per_kill_seconds.pack()
 
 luck_label = tk.Label(window, text="", font=("TkDefaultFont", 8, "italic"))
 luck_label.pack()
+
+calculate_luck_button = ttk.Button(window, text="Calculate Luck", command=calculate_luck_results)
+calculate_luck_button.pack()
 
 simulate_button = ttk.Button(window, text="Graph Drop Probability", command=simulate_drop_probability)
 simulate_button.pack()
